@@ -1,22 +1,28 @@
 // ============================================================================
 // File: monitor.sv
-// Description: Passively monitors DUT signals and sends transactions to Scoreboard.
+// Description: Passively monitors DUT signals and broadcasts transactions 
+//              to both Scoreboard and Coverage via separate mailboxes.
 // ============================================================================
 
 class fifo_monitor #(parameter DATA_WIDTH = 8);
   
   virtual fifo_if #(DATA_WIDTH) vif;
-  mailbox #(fifo_trans #(DATA_WIDTH)) mbx;
   
-  function new(virtual fifo_if #(DATA_WIDTH) vif, mailbox #(fifo_trans #(DATA_WIDTH)) mbx);
+  // Two separate mailboxes to prevent data contention
+  mailbox #(fifo_trans #(DATA_WIDTH)) mbx_scb;
+  mailbox #(fifo_trans #(DATA_WIDTH)) mbx_cov;
+  
+  // Constructor updated to accept two mailboxes
+  function new(virtual fifo_if #(DATA_WIDTH) vif, 
+               mailbox #(fifo_trans #(DATA_WIDTH)) mbx_scb,
+               mailbox #(fifo_trans #(DATA_WIDTH)) mbx_cov);
     this.vif = vif;
-    this.mbx = mbx;
+    this.mbx_scb = mbx_scb;
+    this.mbx_cov = mbx_cov;
   endfunction
 
   task run();
     fifo_trans #(DATA_WIDTH) trans;
-    
-    // Flag to handle 1-cycle read latency
     bit pending_read; 
     
     forever begin
@@ -30,7 +36,8 @@ class fifo_monitor #(parameter DATA_WIDTH = 8);
         trans.empty    = 0; 
         
         trans.display("MONITOR [READ OUT]");
-        mbx.put(trans);
+        mbx_scb.put(trans); // Send to Scoreboard
+        mbx_cov.put(trans); // Send to Coverage
       end
       
       // 2. Process immediate write
@@ -41,7 +48,8 @@ class fifo_monitor #(parameter DATA_WIDTH = 8);
         trans.full    = vif.monitor_cb.full;
         
         trans.display("MONITOR [WRITE IN]");
-        mbx.put(trans);
+        mbx_scb.put(trans); // Send to Scoreboard
+        mbx_cov.put(trans); // Send to Coverage
       end
       
       // 3. Set pending read flag for the next cycle
