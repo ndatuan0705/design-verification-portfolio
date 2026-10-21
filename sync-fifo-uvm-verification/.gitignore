@@ -1,0 +1,35 @@
+
+# Simulation waveform and dump files
+*.vcd
+*.vpd
+*.wlf
+*.fsdb
+*.shm
+*.trn
+
+# Simulator generated files
+work/
+transcript
+vsim.wlf
+xcelium.d/
+xrun.history
+xrun.log
+INCA_libs/
+*.log
+
+# Compiled simulation outputs
+*.o
+*.so
+*.a
+*.out
+
+# Coverage and temporary generated databases
+cov_work/
+coverage_db/
+*.ucdb
+*.vdb
+
+# Editor and operating system files
+.vscode/
+.DS_Store
+Thumbs.db
