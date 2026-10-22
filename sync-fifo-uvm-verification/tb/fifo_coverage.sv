@@ -29,9 +29,7 @@ class fifo_coverage extends uvm_subscriber #(fifo_seq_item);
         // Cross Coverage
         cross_write_full: cross cp_wr_en, cp_full{
             // FEAT_05
-            bins overflow_attempt = binsof (cp_wr_en) intersect {1} && binsof (cp_full) intersect {
-                1
-            };
+            bins overflow_attempt = binsof (cp_wr_en) intersect {1} && binsof (cp_full) intersect {1};
         }
 
         cross_read_empty: cross cp_rd_en, cp_empty{
@@ -42,23 +40,12 @@ class fifo_coverage extends uvm_subscriber #(fifo_seq_item);
             };
         }
 
-        cross_wr_rd: cross cp_wr_en, cp_rd_en, cp_full, cp_empty{
-            // FEAT_07
-            bins valid_concurrent_rw =
-    		binsof(cp_wr_en)  intersect {1} &&
-   		 	binsof(cp_rd_en)  intersect {1} &&
-    		binsof(cp_full)   intersect {0} &&
-    		binsof(cp_empty)  intersect {
-                0
-            };
-
-            ignore_bins other_combinations =
-    		binsof(cp_wr_en)  intersect {0} ||
-    		binsof(cp_rd_en)  intersect {0} ||
-    		binsof(cp_full)   intersect {1} ||
-    		binsof(cp_empty)  intersect {
-                1
-            };
+        cross_wr_rd: cross cp_wr_en, cp_rd_en, cp_full, cp_empty {
+            // FEAT_7
+            bins valid_concurrent_rw = binsof(cp_wr_en) intersect {1} &&
+                                binsof(cp_rd_en) intersect {1} &&
+                                binsof(cp_full) intersect {0} &&
+                                binsof(cp_empty) intersect {0};
         }
     endgroup
 
