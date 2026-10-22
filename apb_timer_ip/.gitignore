@@ -1,0 +1,16 @@
+
+sim/work/
+sim/*.log
+sim/*.wlf
+sim/*.ucdb
+sim/transcript
+sim/vsim.wlf
+sim/modelsim.ini
+sim/wlft*
+
+
+sim/covhtmlreport/
+sim/report/
+
+.DS_Store
+Thumbs.db
