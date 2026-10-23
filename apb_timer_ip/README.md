@@ -82,7 +82,7 @@ Code coverage was collected using **QuestaSim / ModelSim 2024.3** in coverage mo
 - **Branch Coverage:** 100.00% on all `if-else` and `case` decision trees.
 - **Toggle Coverage:** 100.00% on all internal register nodes and port signals.
 - **Condition / Expression Coverage:** 100.00% across all combinatorial logic expressions.
-- **Exclusion File:** `sim/exclude.do` is utilized to exclude unreachable conditions (such as unused testbench helper branches), securing clean 100% DUT code coverage.
+- **Exclusion File:** `sim/exclude.do` is utilized to exclude unreachable conditions (such as reserved bits...), securing clean 100% DUT code coverage.
 
 ## 7. Regression Results
 
@@ -135,7 +135,7 @@ apb_timer_ip/
 │   ├── apb_slave.v                    # APB protocol decoder & wait state logic
 │   ├── register.v                     # Address decoder & register array
 │   ├── counter_control.v              # Prescaler generator & debug halt logic
-│   ├── counter.v                      # 64-bit counter & interrupt comparator
+│   ├── counter.v                      # 64-bit counter
 │   └── apb_timer_ip.v                 # Top-level IP wrapper
 ├── sim/
 │   ├── compile.f                      # Simulation compile file list

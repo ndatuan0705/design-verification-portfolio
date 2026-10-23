@@ -12,7 +12,7 @@ task run_test();
         test_bench.write(12'h00, 32'h0000_0103, 4'h1);
         test_bench.read(12'h00, read_val, err_flag);
         test_bench.check_data(12'h00, read_val, 32'h0000_0103, 32'hFFFF_FFFF);
-        test_bench.write(12'h00, 32'h0000_0102, 4'h2);  //off timer_en but hold div_en
+        test_bench.write(12'h00, 32'h0000_0102, 4'hF);  //off timer_en but hold div_en
         test_bench.write(12'h00, 32'h0000_0000, 4'hF);  //Clear
 
         test_bench.write(12'h00, 32'hFFFF_F5FF, 4'h2);

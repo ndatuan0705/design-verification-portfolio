@@ -12,7 +12,7 @@ module apb_slave (
     output wire        wr_en,
     output wire        rd_en,
     output wire [31:0] wdata,
-    output wire        tim_prdata,
+    output wire [31:0] tim_prdata,
     output wire        tim_pready,
     output wire        tim_pslverr,
     output wire [11:0] addr,

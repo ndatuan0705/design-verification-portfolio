@@ -101,7 +101,7 @@ module register (
     reg  int_st;
     wire int_set;
     wire int_st_pre, tisr_wr_sel, int_clear;
-    assign tisr_wr_sel = (addr[11:0] == 12'h18) ? 1'b1 : 1'b0;
+    assign tisr_wr_sel = (addr[11:0] == 12'h18) & wr_en;
     assign int_clear = (wdata[0] == 1'b1) & wstrb[0] & tisr_wr_sel;
     assign int_set = (count[63:0] == {TCMP1, TCMP0}) ? 1'b1 : 1'b0;
     assign int_st_pre = (int_clear) ? 1'b0 : ((int_set) ? 1'b1 : int_st);
