@@ -6,7 +6,7 @@ This project implements the RTL design and comprehensive verification environmen
 
 The verification environment tests APB protocol compliance, register access rules, 64-bit prescaled counter operations, hardware auto-clear behavior, debug halted mode, error responses (`tim_pslverr`), and level-triggered interrupt lifecycle management with Write-1-to-Clear (RW1C) status handling.
 
-The project achieves **100% DUT code coverage** across all 14 directed and randomized test scenarios in regression.
+The project achieves **100% DUT code coverage** across all 14 directed test scenarios in regression.
 
 ## 2. DUT Specifications
 
@@ -128,9 +128,9 @@ apb_timer_ip/
 │   ├── Timer_Design_Spec.pdf          # Full IP Design Specification PDF
 │   ├── VPLAN_TIMER_IP.xlsx            # Verification Plan Excel Spreadsheet
 │   ├── block_diagram.png              # IP Architecture Block Diagram
-│   ├── regression_result.jpg          # Regression test output log screenshot
-│   ├── code_coverage_result.jpg       # QuestaSim 100% coverage GUI screenshot
-│   └── waveform_regression_test.jpg   # Simulation waveform screenshot
+│   ├── regression_result.png          # Regression test output log screenshot
+│   ├── code_coverage_result.png       # QuestaSim 100% coverage GUI screenshot
+│   └── waveform_regression_test.png   # Simulation waveform screenshot
 ├── rtl/
 │   ├── apb_slave.v                    # APB protocol decoder & wait state logic
 │   ├── register.v                     # Address decoder & register array
@@ -147,7 +147,7 @@ apb_timer_ip/
 │   ├── run.csh                        # Test execution script
 │   └── tb.f                           # Testbench file list
 ├── tb/
-│   └── testbench.v                    # SystemVerilog top-level testbench
+│   └── test_bench.v                   # SystemVerilog top-level testbench
 ├── testcases/                         # 14 modular testcase files
 │   ├── apb_multiple_access.v
 │   ├── apb_protocol_chk.v
