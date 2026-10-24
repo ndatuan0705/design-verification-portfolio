@@ -8,7 +8,7 @@ module counter_control (
     input  wire       dbg_mode,
     output wire       cnt_en,
     output wire       timer_en_fall,
-    output wire       halt_ack
+    output reg        halt_ack
 );
 
     wire cnt_rst;
@@ -24,9 +24,15 @@ module counter_control (
     assign timer_en_fall = !timer_en & timer_en_delay;
 
     //Set Limit, reset internal counter value and halt request
-    assign halt_ack = halt_req & dbg_mode;
+    wire halt_ack_pre;
+    assign halt_ack_pre = halt_req & dbg_mode;
     assign limit = (1 << div_val) - 1;
     assign cnt_rst = !div_en | !timer_en | (limit == int_cnt);
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) halt_ack <= 1'b0;
+        else halt_ack <= halt_ack_pre;
+    end
 
     //Counter enable and select counter mode
     wire count_with_clk, count_with_div_val, count_with_no_div;

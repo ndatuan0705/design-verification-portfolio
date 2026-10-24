@@ -19,7 +19,7 @@ task run_test();
 
         $display("========================================");
         if(err==0) $display("========= [PASSED] REG RESERVED CHECK =========");
-        else $display("========= [FAILED] REG_RESERVED_CHECK ( %0d errros found ) =========", err);
+        else $display("========= [FAILED] REG_RESERVED_CHECK ( %0d erros found ) =========", err);
         $display("========================================");
     end
 endtask

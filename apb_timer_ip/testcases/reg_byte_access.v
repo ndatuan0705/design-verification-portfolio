@@ -2,14 +2,14 @@ task run_test();
     reg [31:0] read_val;
     reg err_flag;
     begin
-        $display("========================================");
-        $display("====== TEST CASE: REG_BYTE_ACCESS ======");
-        $display("========================================");
+        $display("================================================");
+        $display("======== TEST CASE: REG_BYTE_ACCESS ========");
+        $display("================================================");
         err = 0;
 
         $display("Checking TCR BYTE ACCESS");
         test_bench.write(12'h00, 32'h0000_0100, 4'hF);
-        test_bench.write(12'h00, 32'h0000_0103, 4'h1);
+        test_bench.write(12'h00, 32'hFFFF_FFFF, 4'h1);
         test_bench.read(12'h00, read_val, err_flag);
         test_bench.check_data(12'h00, read_val, 32'h0000_0103, 32'hFFFF_FFFF);
         test_bench.write(12'h00, 32'h0000_0102, 4'hF);  //off timer_en but hold div_en
@@ -38,7 +38,6 @@ task run_test();
         test_bench.write(12'h00, 32'h0000_0500, 4'hF);
         test_bench.write(12'h00, 32'h0000_0000, 4'hF);
 
-
         $display("Checking TDR0 BYTE ACCESS");
         test_bench.write(12'h04, 32'h0000_0000, 4'hF);
 
@@ -65,7 +64,6 @@ task run_test();
         test_bench.write(12'h04, 32'h6666_6666, 4'hC);
         test_bench.read(12'h04, read_val, err_flag);
         test_bench.check_data(12'h04, read_val, 32'h6666_5555, 32'hFFFF_FFFF);
-
 
 
         $display("Checking TDR1 BYTE ACCESS");
@@ -96,7 +94,6 @@ task run_test();
         test_bench.check_data(12'h08, read_val, 32'h6666_5555, 32'hFFFF_FFFF);
 
 
-
         $display("Checking TCMP0 BYTE ACCESS");
         test_bench.write(12'h0C, 32'hFFFF_FFFF, 4'hF);
 
@@ -123,7 +120,6 @@ task run_test();
         test_bench.write(12'h0C, 32'h6666_6666, 4'hC);
         test_bench.read(12'h0C, read_val, err_flag);
         test_bench.check_data(12'h0C, read_val, 32'h6666_5555, 32'hFFFF_FFFF);
-
 
 
         $display("Checking TCMP1 BYTE ACCESS");
@@ -154,7 +150,6 @@ task run_test();
         test_bench.check_data(12'h10, read_val, 32'h6666_5555, 32'hFFFF_FFFF);
 
 
-
         $display("Checking TIER BYTE ACCESS");
         test_bench.write(12'h14, 32'h0000_0000, 4'hF);
 
@@ -183,7 +178,6 @@ task run_test();
         test_bench.check_data(12'h14, read_val, 32'h0000_0000, 32'hFFFF_FFFF);
 
 
-
         $display("Checking THCSR BYTE ACCESS");
         test_bench.write(12'h1C, 32'h0000_0000, 4'hF);
 
@@ -210,7 +204,6 @@ task run_test();
         test_bench.write(12'h1C, 32'h7777_7777, 4'hC);
         test_bench.read(12'h1C, read_val, err_flag);
         test_bench.check_data(12'h1C, read_val, 32'h0000_0000, 32'hFFFF_FFFF);
-
 
 
         $display("Checking TISR BYTE ACCESS");
@@ -252,14 +245,13 @@ task run_test();
         test_bench.check_data(12'h18, read_val, 32'h0000_0000, 32'hFFFF_FFFF);
 
         /*Clean
-        test_bench.write(12'h00, 32'h0000_0000, 4'hF);
-        test_bench.write(12'h14, 32'h0000_0001, 4'hF);
-        test_bench.write(12'h18, 32'h0000_0001, 4'hF);
+            test_bench.write(12'h00, 32'h0000_0000, 4'hF);
+            test_bench.write(12'h14, 32'h0000_0001, 4'hF);
+            test_bench.write(12'h18, 32'h0000_0001, 4'hF);
         */
-
-        $display("========================================");
+        $display("================================================");
         if (err == 0) $display("========= [PASSED] REG_BYTE_ACCESS =========");
-        else $display("========= [FAILED] REG_BYTE_ACCESS ( %0d errros found ) =========", err);
-        $display("========================================");
+        else $display("========= [FAILED] REG_BYTE_ACCESS ( %0d erros found ) =========", err);
+        $display("================================================");
     end
 endtask

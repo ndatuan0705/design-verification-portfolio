@@ -2,9 +2,9 @@ task run_test();
     reg [31:0] rdata0, rdata1;
     reg err_flag;
     begin
-        $display("========================================");
-        $display("===== TEST CASE: APB_MULTIPLE_ACCESS ====");
-        $display("========================================");
+        $display("================================================");
+        $display("======== TEST CASE: APB_MULTIPLE_ACCESS ========");
+        $display("================================================");
         err = 0;
 
         test_bench.rst_n = 0;
@@ -16,12 +16,12 @@ task run_test();
         //WRITE - WRITE
         @(posedge test_bench.clk) #1;
         //SETUP
-        test_bench.tim_psel    = 1'b1;
+        test_bench.tim_psel = 1'b1;
         test_bench.tim_penable = 1'b0;
-        test_bench.tim_pwrite  = 1'b1;
-        test_bench.tim_paddr   = 12'h04;
-        test_bench.tim_pwdata  = 32'hAAAA_BBBB;
-        test_bench.tim_pstrb   = 4'hF;
+        test_bench.tim_pwrite = 1'b1;
+        test_bench.tim_paddr = 12'h04;
+        test_bench.tim_pwdata = 32'hAAAA_BBBB;
+        test_bench.tim_pstrb = 4'hF;
 
         @(posedge test_bench.clk) #1;
         //ACCESS - WRITE TDR0
@@ -41,18 +41,18 @@ task run_test();
         wait (test_bench.tim_pready == 1'b1);
         //IDLE
         @(posedge test_bench.clk) #1;
-        test_bench.tim_psel    = 1'b0;
+        test_bench.tim_psel = 1'b0;
         test_bench.tim_penable = 1'b0;
-        test_bench.tim_pwrite  = 1'b0;
+        test_bench.tim_pwrite = 1'b0;
         repeat (2) @(posedge test_bench.clk);
 
         // READ - READ
         @(posedge test_bench.clk) #1;
         //SETUP - TDR0
-        test_bench.tim_psel    = 1'b1;
+        test_bench.tim_psel = 1'b1;
         test_bench.tim_penable = 1'b0;
-        test_bench.tim_pwrite  = 1'b0;
-        test_bench.tim_paddr   = 12'h04;
+        test_bench.tim_pwrite = 1'b0;
+        test_bench.tim_paddr = 12'h04;
         @(posedge test_bench.clk) #1;
         //ACCESS - READ TDR0
         test_bench.tim_penable = 1'b1;
@@ -72,7 +72,7 @@ task run_test();
 
         @(posedge test_bench.clk) #1;
         //IDLE
-        test_bench.tim_psel    = 1'b0;
+        test_bench.tim_psel = 1'b0;
         test_bench.tim_penable = 1'b0;
 
         if (rdata0 === 32'hAAAA_BBBB && rdata1 === 32'hCCCC_DDDD) begin
@@ -84,8 +84,8 @@ task run_test();
             err = err + 1;
         end
 
-
         $display("2. Multiple Access WR-WR");
+
         test_bench.rst_n = 0;
         repeat (2) @(posedge test_bench.clk);
         test_bench.rst_n = 1;
@@ -93,12 +93,12 @@ task run_test();
         //WRITE TDR0
         @(posedge test_bench.clk) #1;
         //SETUP
-        test_bench.tim_psel    = 1'b1;
+        test_bench.tim_psel = 1'b1;
         test_bench.tim_penable = 1'b0;
-        test_bench.tim_pwrite  = 1'b1;
-        test_bench.tim_paddr   = 12'h04;
-        test_bench.tim_pwdata  = 32'h1111_2222;
-        test_bench.tim_pstrb   = 4'hF;
+        test_bench.tim_pwrite = 1'b1;
+        test_bench.tim_paddr = 12'h04;
+        test_bench.tim_pwdata = 32'h1111_2222;
+        test_bench.tim_pstrb = 4'hF;
 
         @(posedge test_bench.clk) #1;
         //ACCESS
@@ -118,6 +118,7 @@ task run_test();
 
         //WRITE TDR1
         @(posedge test_bench.clk) #1;
+        //SETUP
         test_bench.tim_penable = 1'b0;
         test_bench.tim_pwrite  = 1'b1;
         test_bench.tim_paddr   = 12'h08;
@@ -139,8 +140,7 @@ task run_test();
         wait (test_bench.tim_pready == 1'b1);
         rdata1 = test_bench.tim_prdata;
         //IDLE
-        @(posedge test_bench.clk) #1;
-        test_bench.tim_psel    = 1'b0;
+        test_bench.tim_psel = 1'b0;
         test_bench.tim_penable = 1'b0;
 
         if (rdata0 === 32'h1111_2222 && rdata1 === 32'h3333_4444) begin
@@ -151,18 +151,17 @@ task run_test();
                 rdata0, rdata1);
             err = err + 1;
         end
-
         //FORCE COVERAGE
         @(posedge test_bench.clk) #1;
-        test_bench.tim_psel    = 1'b1;
+        test_bench.tim_psel = 1'b1;
         test_bench.tim_penable = 1'b1;
         @(posedge test_bench.clk) #1;
-        test_bench.tim_psel    = 1'b0;
+        test_bench.tim_psel = 1'b0;
         test_bench.tim_penable = 1'b0;
 
-        $display("========================================");
+        $display("================================================");
         if (err == 0) $display("========= [PASSED] APB_MULTIPLE_ACCESS =========");
-        else $display("========= [FAILED] APB_MULTIPLE_ACCESS ( %0d errros found ) =========", err);
-        $display("========================================");
+        else $display("========= [FAILED] APB_MULTIPLE_ACCESS ( %0d erros found ) =========", err);
+        $display("================================================");
     end
 endtask

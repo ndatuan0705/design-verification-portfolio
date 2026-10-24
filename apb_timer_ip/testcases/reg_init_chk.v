@@ -41,7 +41,7 @@ task run_test();
 
         $display("========================================");
         if(err==0) $display("========= [PASSED] REG_INIT_CHECK =========");
-        else $display("========= [FAILED] REG_INIT_CHECK ( %0d errros found ) =========", err);
+        else $display("========= [FAILED] REG_INIT_CHECK ( %0d erros found ) =========", err);
         $display("========================================");
     end
 endtask

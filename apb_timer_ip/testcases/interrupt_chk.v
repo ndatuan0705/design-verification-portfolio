@@ -4,9 +4,9 @@ task run_test();
     reg [63:0] dut_cnt;
     integer i;
     begin
-        $display("========================================");
-        $display("====== TEST CASE: INTERRUPT_CHECK ======");
-        $display("========================================");
+        $display("================================================");
+        $display("======== TEST CASE: INTERRUPT_CHECK ========");
+        $display("================================================");
         err = 0;
 
         test_bench.rst_n = 0;
@@ -16,7 +16,7 @@ task run_test();
 
         $display("1. Counter continue counting when interrupt occurs");
         test_bench.write(12'h0C, 32'h0000_00FF, 4'hF);  //TCMP0 = FF
-        test_bench.write(12'h10, 32'h0000_0000, 4'hF);  //TCMP1 = 0
+        test_bench.write(12'h10, 32'h0000_0000, 4'hF);  //TCMP1 = 00
         test_bench.write(12'h14, 32'h0000_0001, 4'hF);  //int_en = 1
         test_bench.write(12'h00, 32'h0000_0001, 4'hF);  //timer_en = 1
 
@@ -33,7 +33,6 @@ task run_test();
                      dut_cnt, $time);
             err = err + 1;
         end
-
 
         $display("2. After reset, timer can work normally");
         test_bench.rst_n = 0;
@@ -61,7 +60,6 @@ task run_test();
             err = err + 1;
         end
 
-
         $display("3. Interrupt pending: Set condition");
         test_bench.rst_n = 0;
         repeat (2) @(posedge test_bench.clk);
@@ -82,7 +80,6 @@ task run_test();
             $display("[FAILED] tim_int = %0b | TISR.int_st = %0b", test_bench.tim_int, rdata[0]);
             err = err + 1;
         end
-
 
         $display("4. Interrupt pending: Clear condition");
         //Write 0
@@ -107,7 +104,6 @@ task run_test();
             err = err + 1;
         end
 
-
         $display("5. Interrupt pending: Manual condition");
         test_bench.rst_n = 0;
         repeat (2) @(posedge test_bench.clk);
@@ -126,7 +122,6 @@ task run_test();
             $display("[FAILED] Manual overflow failed");
             err = err + 1;
         end
-
 
         $display("6. Interrupt enable: Set condition");
         test_bench.rst_n = 0;
@@ -148,7 +143,6 @@ task run_test();
             $display("[FAILED] tim_int = %0b | TISR.int_st = %0b", test_bench.tim_int, rdata[0]);
             err = err + 1;
         end
-
 
         $display("7. Interrupt enable: Clear condition");
         //Write 0
@@ -173,7 +167,6 @@ task run_test();
             err = err + 1;
         end
 
-
         $display("8. Interrupt pending: Manual condition");
         test_bench.rst_n = 0;
         repeat (2) @(posedge test_bench.clk);
@@ -193,16 +186,14 @@ task run_test();
             err = err + 1;
         end
 
-
         $display("9. Mask condition");
         test_bench.rst_n = 0;
         repeat (2) @(posedge test_bench.clk);
         test_bench.rst_n = 1;
         repeat (2) @(posedge test_bench.clk);
-
         test_bench.write(12'h14, 32'h0000_0001, 4'hF);
         test_bench.write(12'h0C, 32'h0000_00FF, 4'hF);
-        test_bench.write(12'h00, 32'h0000_0000, 4'hF);
+        test_bench.write(12'h00, 32'h0000_0001, 4'hF);
         test_bench.write(12'h10, 32'h0000_0000, 4'hF);
         repeat (270) @(posedge test_bench.clk);
         test_bench.read(12'h18, rdata, err_flag);
@@ -217,7 +208,6 @@ task run_test();
             $display("[FAILED] Masking failed");
             err = err + 1;
         end
-
 
         $display("10. Once asserted, interrupt must be kept");
         test_bench.write(12'h14, 32'h0000_0001, 4'hF);  //TIER = 1 open mask
@@ -234,7 +224,6 @@ task run_test();
             $display("[FAILED] Interrupt lost after timer disabled");
             err = err + 1;
         end
-
 
         $display("11. Clear Priority");
         test_bench.rst_n = 0;
@@ -258,9 +247,9 @@ task run_test();
             err = err + 1;
         end
 
-        $display("========================================");
+        $display("================================================");
         if (err == 0) $display("========= [PASSED] INTERRUPT_CHECK =========");
-        else $display("========= [FAILED] INTERRUPT_CHECK ( %0d errros found ) =========", err);
-        $display("========================================");
+        else $display("========= [FAILED] INTERRUPT_CHECK ( %0d erros found ) =========", err);
+        $display("================================================");
     end
 endtask

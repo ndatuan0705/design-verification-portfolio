@@ -35,7 +35,7 @@ task run_test();
 
         $display("========================================");
         if (err == 0) $display("========= [PASSED] APB_PROTOCOL_CHECK =========");
-        else $display("========= [FAILED] APB_PROTOCOL_CHECK ( %0d errros found ) =========", err);
+        else $display("========= [FAILED] APB_PROTOCOL_CHECK ( %0d erros found ) =========", err);
         $display("========================================");
     end
 endtask

@@ -72,7 +72,7 @@ task run_test();
         if (err == 0) $display("========= [PASSED] APB_RW_CHECK (PREADY) =========");
         else
             $display(
-                "========= [FAILED] APB_RW_CHECK (PREADY) ( %0d errros found ) =========", err
+                "========= [FAILED] APB_RW_CHECK (PREADY) ( %0d erros found ) =========", err
             );
         $display("========================================");
     end
