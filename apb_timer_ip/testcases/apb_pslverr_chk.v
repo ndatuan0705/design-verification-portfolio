@@ -32,7 +32,7 @@ task run_test();
             @(posedge test_bench.clk) #1;
             //ACCESS
             test_bench.tim_penable = 1'b1;
-            wait (test_bench.tim_pready == 1'b1);
+            wait (test_bench.tim_pready == 1'b1) #1;
             err_flag = test_bench.tim_pslverr;
             //IDLE
             @(posedge test_bench.clk) #1;
@@ -68,7 +68,7 @@ task run_test();
         @(posedge test_bench.clk) #1;
         //ACCESS
         test_bench.tim_penable = 1'b1;
-        wait (test_bench.tim_pready == 1'b1);
+        wait (test_bench.tim_pready == 1'b1) #1;
         err_flag = test_bench.tim_pslverr;
         //IDLE
         @(posedge test_bench.clk) #1;
@@ -126,7 +126,7 @@ task run_test();
                 @(posedge test_bench.clk) #1;
                 //ACCESS
                 test_bench.tim_penable = 1'b1;
-                wait (test_bench.tim_pready == 1'b1);
+                wait (test_bench.tim_pready == 1'b1) #1;
                 err_flag = test_bench.tim_pslverr;
                 //IDLE
                 @(posedge test_bench.clk) #1;
@@ -163,7 +163,7 @@ task run_test();
         //ACCESS
         test_bench.tim_penable = 1'b1;
 
-        wait (test_bench.tim_pready == 1'b1);
+        wait (test_bench.tim_pready == 1'b1) #1;
 
         if (test_bench.tim_pslverr == 1'b1) begin
             $display("[PASSED] Pslverr is HIGH when Pready is HIGH");

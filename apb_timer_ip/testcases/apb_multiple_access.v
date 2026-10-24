@@ -56,7 +56,7 @@ task run_test();
         @(posedge test_bench.clk) #1;
         //ACCESS - READ TDR0
         test_bench.tim_penable = 1'b1;
-        wait (test_bench.tim_pready == 1'b1);
+        wait (test_bench.tim_pready == 1'b1) #1;
         rdata0 = test_bench.tim_prdata;
 
         //@(posedge test_bench.clk)
@@ -67,7 +67,7 @@ task run_test();
         @(posedge test_bench.clk) #1;
         //ACCESS - READ TDR1
         test_bench.tim_penable = 1'b1;
-        wait (test_bench.tim_pready == 1'b1);
+        wait (test_bench.tim_pready == 1'b1) #1;
         rdata1 = test_bench.tim_prdata;
 
         @(posedge test_bench.clk) #1;
@@ -103,7 +103,7 @@ task run_test();
         @(posedge test_bench.clk) #1;
         //ACCESS
         test_bench.tim_penable = 1'b1;
-        wait (test_bench.tim_pready == 1'b1);
+        wait (test_bench.tim_pready == 1'b1) #1;
         //READ - TDR0
         @(posedge test_bench.clk) #1;
         //SETUP - READ TDR0
@@ -113,7 +113,7 @@ task run_test();
         @(posedge test_bench.clk) #1;
         //ACCESS - READ TDR0
         test_bench.tim_penable = 1'b1;
-        wait (test_bench.tim_pready == 1'b1);
+        wait (test_bench.tim_pready == 1'b1) #1;
         rdata0 = test_bench.tim_prdata;
 
         //WRITE TDR1
@@ -137,7 +137,7 @@ task run_test();
         @(posedge test_bench.clk) #1;
         //ACCESS - READ TDR1
         test_bench.tim_penable = 1'b1;
-        wait (test_bench.tim_pready == 1'b1);
+        wait (test_bench.tim_pready == 1'b1) #1;
         rdata1 = test_bench.tim_prdata;
         //IDLE
         test_bench.tim_psel = 1'b0;
