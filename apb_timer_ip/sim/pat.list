@@ -12,3 +12,4 @@ apb_pslverr_chk
 apb_multiple_access
 apb_unaligned_chk
 interrupt_chk
+cnt_behavior_chk
