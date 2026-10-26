@@ -2,11 +2,11 @@
 
 ## 1. Overview
 
-This project implements the RTL design and comprehensive verification environment for a 64-bit APB-based Timer IP. The IP is customized based on the Core-Local Interruptor (CLINT) module from industrial RISC-V architectures.
+This project implements the RTL design and a verification environment for a 64-bit APB-based Timer IP. The IP is customized from the Core-Local Interruptor (CLINT) timer of industrial RISC-V architectures.
 
-The verification environment tests APB protocol compliance, register access rules, 64-bit prescaled counter operations, hardware auto-clear behavior, debug halted mode, error responses (`tim_pslverr`), and level-triggered interrupt lifecycle management with Write-1-to-Clear (RW1C) status handling.
+The verification environment tests APB protocol behavior (including wrong-protocol cases), register access rules, the 64-bit prescaled counter, hardware auto-clear, debug halt mode, error responses (`tim_pslverr`), and the level-triggered interrupt lifecycle with Write-1-to-Clear (RW1C) status handling.
 
-The project achieves **100% DUT code coverage** across all 14 directed test scenarios in regression.
+All 15 directed testcases pass in regression, and DUT code coverage is closed to 100% with a small, documented set of exclusions (see Section 6).
 
 ## 2. DUT Specifications
 
@@ -14,90 +14,87 @@ The project achieves **100% DUT code coverage** across all 14 directed test scen
 | :--- | :--- |
 | **Bus Interface** | APB Slave with 12-bit address bus (`tim_paddr[11:0]`) and 32-bit data bus |
 | **Data Transfer** | 32-bit APB transfers with 4-bit byte-enable write strobes (`tim_pstrb[3:0]`) |
-| **Wait States** | 1-cycle wait state insertion via `tim_pready` for timing closure |
+| **Wait States** | Every transfer has one wait state: `tim_pready` is Low in the first `tim_penable` cycle and High in the next |
 | **Error Handling** | Error response (`tim_pslverr`) on illegal configuration attempts |
-| **Reserved Area** | RAZ/WI (Read-As-Zero, Write-Ignored) compliance on reserved offsets |
+| **Reserved Area** | RAZ/WI (Read-As-Zero, Write-Ignored) on reserved offsets |
 | **Counter Architecture** | 64-bit count-up timer (`TDR0` lower 32 bits, `TDR1` upper 32 bits) |
 | **Prescaler Modes** | Default mode (system clock speed) and Control mode (divided up to 256) |
-| **Auto-Clear** | Hardware automatically clears `TDR0`/`TDR1` to `0` when `timer_en` drops ($H \rightarrow L$) |
-| **Debug Mode** | Freezes counting when `dbg_mode = 1` and `THCSR.halt_req = 1`, acknowledging via `THCSR.halt_ack = 1` |
-| **Interrupt System** | Hardware maskable level-interrupt (`tim_int`) triggered on 64-bit `TCMP0`/`TCMP1` match with RW1C clearance |
-| **Reset** | Active-low asynchronous reset (`sys_rst_n`) |
+| **Auto-Clear** | Hardware clears `TDR0`/`TDR1` to `0` when `timer_en` falls (H -> L) |
+| **Debug Mode** | Freezes counting when `dbg_mode = 1` and `THCSR.halt_req = 1`, acknowledged by `THCSR.halt_ack = 1` |
+| **Interrupt System** | Maskable level interrupt (`tim_int`) set when the 64-bit counter equals `{TCMP1, TCMP0}`, cleared with RW1C |
+| **Reset** | Active-low asynchronous reset (`rst_n`) |
 
 ## 3. Design Architecture
 
 ![Block Diagram](docs/block_diagram.png)
 
-The Timer IP top-level module (`timer_top` / `apb_timer_ip`) consists of four functional blocks:
+The top-level module (`apb_timer_ip`) consists of four functional blocks:
 
-- **APB Slave:** Translates system APB bus transactions (`tim_psel`, `tim_pwrite`, `tim_penable`, `tim_paddr`, `tim_pwdata`, `tim_pstrb`) into internal read/write strobes (`wr_en`, `rd_en`), generates 1-cycle wait states via `tim_pready`, and asserts `tim_pslverr` upon invalid access.
-- **Register:** Decodes 12-bit addresses, stores static configuration registers (`TCR`, `TIER`, `TISR`, `THCSR`), implements RAZ/WI for reserved spaces, manages RW1C clearing logic, and checks for illegal configuration parameters to trigger `reg_err`.
-- **Counter Control:** Manages the internal 8-bit prescaler counter (`int_cnt`) based on `div_val` and `div_en`, generates synchronized count enable pulses (`cnt_en`), detects falling edges of `timer_en` (`timer_en_fall`), and controls debug halt request/acknowledge handshaking.
-- **Counter:** Houses the physical 64-bit hardware counter (`TDR0` and `TDR1`), handles priority-based loading (Hardware Auto-Clear > APB Byte Writes > Count Increment), and continuously evaluates compare threshold registers (`TCMP0`/`TCMP1`) to drive interrupt request signals.
+- **APB Slave:** A 3-state FSM (IDLE -> SETUP -> ACCESS). It turns APB transfers into one-cycle read/write strobes (`wr_en`, `rd_en`), asserts `tim_pready` in the ACCESS cycle (one wait state per transfer), and forwards `reg_err` to `tim_pslverr`. `wr_en`, `rd_en` and `tim_pready` are only active when `PSEL` and `PENABLE` are both High.
+- **Register:** Decodes 12-bit addresses, stores configuration registers (`TCR`, `TCMP0/1`, `TIER`, `TISR`, `THCSR`), implements RAZ/WI for reserved space, handles RW1C clearing, checks illegal configuration writes to generate `reg_err`, and compares the counter with `{TCMP1, TCMP0}` to set the interrupt status and drive `tim_int`.
+- **Counter Control:** Runs the internal 8-bit prescaler counter based on `div_val` and `div_en`, generates the count enable (`cnt_en`), detects the falling edge of `timer_en` (`timer_en_fall`), and handles the debug halt request/acknowledge handshake.
+- **Counter:** Holds the 64-bit counter (`TDR0`, `TDR1`) with the update priority: Hardware Auto-Clear > APB byte-strobe write > Count Increment.
 
 ## 4. Verification Architecture & Scenarios
 
-The verification environment is built around a task-driven testbench (`test_bench.v`) executing modular testcases from the `testcases/` directory.
+The environment is a task-driven testbench (`test_bench.v`) that runs one testcase from `testcases/` per simulation.
 
-- **APB Master Driver Tasks:** `test_bench.write()` and `test_bench.read()` generate APB bus transactions with 1-cycle wait state handshaking and byte-strobe positioning.
-- **Golden Reference Model:** An internal reference model (`mod_golden_cnt`) tracks expected counter values, interrupt states, and configuration flags in parallel with the DUT.
-- **Self-Checking Checkers:** Automated check logic verifies register data integrity, status flags, counter progression, and error signaling against expected values.
-- **Testcase Suite:** 14 independent test files (`*.v`) loaded sequentially by the C-shell regression harness (`run.csh` / `report.csh`).
+- **APB Master Tasks:** `test_bench.write()` and `test_bench.read()` generate protocol-compliant APB transfers (setup phase, access phase held until `tim_pready`) with byte strobes.
+- **Golden Reference Model:** `mod_golden_cnt` tracks the expected 64-bit counter value in parallel with the DUT, following the TCR, TDR and THCSR writes seen on the bus.
+- **Self-Checking:** Each testcase compares read data, flags and error responses against expected values, prints `[PASSED]`/`[FAILED]` per check, and reports a final verdict.
+- **Testcase Suite:** 15 independent testcase files, listed in `sim/pat.list` and run in sequence by `run.csh`; `report.csh` summarizes the results.
 
 | Test Scenario | Testcase File (`Pat name`) | Verification Objective |
 | :--- | :--- | :--- |
-| **Register Reset Values** | `reg_init_chk.v` | Verify reset default values across all registers (`TCR`, `TDR0/1`, `TCMP0/1`, `TIER`, `TISR`, `THCSR`). |
-| **Register Read / Write** | `reg_rw_chk.v` | Exercise read and write operations on all RW fields and verify read-only bit preservation. |
-| **Byte Access** | `reg_byte_access.v` | Verify individual byte writes using `tim_pstrb[3:0]` strobes without corrupting adjacent bytes. |
-| **Reserved Space** | `reg_reserved_chk.v` | Verify RAZ/WI behavior when reading or writing to unmapped register addresses. |
-| **One-Hot Pattern** | `reg_1hot_chk.v` | Write one-hot patterns across register fields to detect bit-coupling and crosstalk bugs. |
-| **Counter Basic Operation** | `cnt_counting_chk.v` | Verify 64-bit counter continuous incrementing in default mode and overflow recovery. |
-| **Prescaler Control** | `cnt_ctrl_chk.v` | Verify prescaler frequency division settings (`div_val = 0..8`, divide factor up to 256). |
-| **Debug Halted Mode** | `cnt_halt_chk.v` | Assert `dbg_mode` and `THCSR.halt_req`, verifying counter freezing and `halt_ack` assertion. |
-| **APB Protocol Timing** | `apb_protocol_chk.v` | Check APB setup phase, access phase timing, and 1-cycle wait state (`tim_pready`). |
-| **APB Back-to-Back R/W** | `apb_rw_chk.v` | Stress consecutive APB write and read transfers without idle cycles. |
-| **Error Response Handling** | `apb_pslverr_chk.v` | Verify `tim_pslverr` assertion when writing illegal `div_val` or modifying config while active. |
-| **Multiple Bus Access** | `apb_multiple_access.v` | Execute multi-word burst transfers to verify bus throughput and stability. |
-| **Unaligned Address Access** | `apb_unaligned_chk.v` | Issue unaligned address requests and verify aligned register values remain preserved. |
-| **Interrupt Lifecycle** | `interrupt_chk.v` | Verify `tim_int` assertion on match, `TIER` masking, RW1C clearance priority, and auto-clear. |
+| **Register Reset Values** | `reg_init_chk.v` | Verify reset default values of all registers. |
+| **Register Read / Write** | `reg_rw_chk.v` | Exercise read and write operations on all register fields. |
+| **Byte Access** | `reg_byte_access.v` | Verify byte writes using `tim_pstrb[3:0]` without corrupting adjacent bytes. |
+| **Reserved Space** | `reg_reserved_chk.v` | Verify RAZ/WI behavior on reserved register addresses. |
+| **One-Hot Pattern** | `reg_1hot_chk.v` | Write one-hot patterns to detect bit-coupling between register fields. |
+| **Counter Basic Operation** | `cnt_counting_chk.v` | Verify counting, carry from `TDR0` to `TDR1`, updating `TDR0/1` while counting, and clear on disable/resume. |
+| **Prescaler Control** | `cnt_ctrl_chk.v` | Verify counting speed for `div_en` / `div_val` settings and counting after `timer_en` 1 -> 0 -> 1. |
+| **Counter Behavior** | `cnt_behavior_chk.v` | Verify hardware auto-clear vs APB write, and APB write vs hardware increment (APB write wins). |
+| **Debug Halted Mode** | `cnt_halt_chk.v` | Verify counter freeze and `halt_ack` with `dbg_mode = 1`, and no halt with `dbg_mode = 0`. |
+| **APB Protocol** | `apb_protocol_chk.v` | Normal transfer, and wrong-protocol cases (only `PENABLE`, only `PSEL`) that must not change registers. |
+| **APB Wait State** | `apb_rw_chk.v` | Check the 1-cycle wait state (`tim_pready`) on write and read transfers. |
+| **Error Response Handling** | `apb_pslverr_chk.v` | Verify `tim_pslverr` on illegal `div_val` writes and on config changes while the timer is running. |
+| **Multiple Bus Access** | `apb_multiple_access.v` | Back-to-back transfers (write-write then read-read, and write-read pairs) with data checks. |
+| **Unaligned Address Access** | `apb_unaligned_chk.v` | Issue unaligned address requests and verify aligned register values are preserved. |
+| **Interrupt Lifecycle** | `interrupt_chk.v` | Verify `tim_int` set on match, `TIER` masking, RW1C clear, sticky behavior and clear priority. |
 
 ## 5. Register Specification
 
 | Address | Abbreviation | Register Name | Type | Reset Value | Description |
 | :---: | :---: | :---: | :---: | :---: | :--- |
 | `0x00` | **TCR** | Timer Control Register | R/W | `0x0000_0100` | Timer enable (`bit 0`), prescaler enable (`bit 1`), and division factor `DIV_VAL` (`bits 11:8`). |
-| `0x04` | **TDR0** | Timer Data Register 0 | R/W | `0x0000_0000` | Lower 32-bit counter value. Auto-clears to `0` on `timer_en` $H \rightarrow L$. |
-| `0x08` | **TDR1** | Timer Data Register 1 | R/W | `0x0000_0000` | Upper 32-bit counter value. Auto-clears to `0` on `timer_en` $H \rightarrow L$. |
-| `0x0C` | **TCMP0** | Timer Compare Register 0 | R/W | `0xFFFF_FFFF` | Lower 32-bit threshold value for interrupt trigger. |
-| `0x10` | **TCMP1** | Timer Compare Register 1 | R/W | `0xFFFF_FFFF` | Upper 32-bit threshold value for interrupt trigger. |
+| `0x04` | **TDR0** | Timer Data Register 0 | R/W | `0x0000_0000` | Lower 32-bit counter value. Auto-clears to `0` when `timer_en` falls. |
+| `0x08` | **TDR1** | Timer Data Register 1 | R/W | `0x0000_0000` | Upper 32-bit counter value. Auto-clears to `0` when `timer_en` falls. |
+| `0x0C` | **TCMP0** | Timer Compare Register 0 | R/W | `0xFFFF_FFFF` | Lower 32-bit compare value for the interrupt. |
+| `0x10` | **TCMP1** | Timer Compare Register 1 | R/W | `0xFFFF_FFFF` | Upper 32-bit compare value for the interrupt. |
 | `0x14` | **TIER** | Timer Interrupt Enable Register | R/W | `0x0000_0000` | Interrupt enable mask (`bit 0`). |
-| `0x18` | **TISR** | Timer Interrupt Status Register | RW1C | `0x0000_0000` | Interrupt pending status (`bit 0`). Write 1 to clear (`RW1C`). |
+| `0x18` | **TISR** | Timer Interrupt Status Register | RW1C | `0x0000_0000` | Interrupt pending status (`bit 0`). Write 1 to clear. |
 | `0x1C` | **THCSR** | Timer Halt Control Status Register | R/W | `0x0000_0000` | Debug halt request (`bit 0`, RW) and halt acknowledge (`bit 1`, RO). |
 
 ## 6. Code Coverage
 
-Code coverage was collected using **QuestaSim / ModelSim 2024.3** in coverage mode (`+cover=bcefst`).
+Code coverage was collected with **QuestaSim / ModelSim Intel Starter 2024.3** using `+cover=bcesft` (branch, condition, expression, statement, FSM, toggle).
 
-- **Statement Coverage:** 100.00% on DUT modules (`apb_slave`, `register`, `counter_control`, `counter`).
-- **Branch Coverage:** 100.00% on all `if-else` and `case` decision trees.
-- **Toggle Coverage:** 100.00% on all internal register nodes and port signals.
-- **Condition / Expression Coverage:** 100.00% across all combinatorial logic expressions.
-- **Exclusion File:** `sim/exclude.do` is utilized to exclude unreachable conditions (such as reserved bits...), securing clean 100% DUT code coverage.
+- **Statement / Branch / FSM / Toggle:** 100% on the DUT modules (`apb_slave`, `register`, `counter_control`, `counter`) after exclusions.
+- **Condition / Expression (FEC):** 100% after exclusions.
+- **Exclusions (`sim/exclude.do`):**
+  - Reserved `TCR` bits (toggle), which are not implemented.
+  - FEC rows in `apb_slave.v` lines 46-48 that are decided only by `PSEL` or `PENABLE` in the ACCESS state. They need a master that drops `PSEL`/`PENABLE` inside the ACCESS cycle, which is an APB protocol violation and is outside the verification plan.
 
 ## 7. Regression Results
 
-The full regression suite was executed via C-shell automation scripts (`./report.csh`).
+The full regression was run with `./run.csh cov` and summarized with `./report.csh`.
 
 | Metric | Result |
 | :--- | :--- |
-| **Total Testcases Run** | 14 |
-| **Passed Testcases** | 14 |
+| **Total Testcases Run** | 15 |
+| **Passed Testcases** | 15 |
 | **Failed Testcases** | 0 |
-| **DUT Statement Coverage** | 100.00% |
-| **DUT Branch Coverage** | 100.00% |
-| **DUT Toggle Coverage** | 100.00% |
-| **DUT Condition Coverage** | 100.00% |
-| **Regression Status** | **PASSED (14/14/0)** |
+| **Regression Status** | **PASSED (15/15/0)** |
 
 ### Simulation Evidence
 
@@ -105,19 +102,19 @@ The full regression suite was executed via C-shell automation scripts (`./report
 
 ![Regression Summary](docs/regression_result.png)
 
-**QuestaSim Code Coverage Report (100% DUT Coverage)**
+**QuestaSim Code Coverage Report**
 
 ![Coverage Report](docs/code_coverage_result.png)
 
-**Simulation Waveform (Regression Run)**
+**Simulation Waveform (last testcase of the regression)**
 
 ![Regression Waveform](docs/waveform_regression_test.png)
 
 ## 8. Tools and Technologies
 
-- **Hardware Description Language:** Verilog / SystemVerilog
+- **Hardware Description Language:** Verilog
 - **Simulation & EDA Tool:** QuestaSim / ModelSim 2024.3 (Intel Starter FPGA Edition)
-- **Scripting & Automation:** C-Shell (`run.csh`, `report.csh`), Make (`Makefile`), Tcl / DO scripts (`exclude.do`)
+- **Automation:** Make (`Makefile`), C-shell scripts (`run.csh`, `report.csh`), Tcl / DO script (`exclude.do`)
 - **Version Control:** Git & GitHub
 
 ## 9. Repository Structure
@@ -125,35 +122,37 @@ The full regression suite was executed via C-shell automation scripts (`./report
 ```text
 apb_timer_ip/
 ├── docs/
-│   ├── Timer_Design_Spec.pdf          # Full IP Design Specification PDF
-│   ├── VPLAN_TIMER_IP.xlsx            # Verification Plan Excel Spreadsheet
-│   ├── block_diagram.png              # IP Architecture Block Diagram
-│   ├── regression_result.png          # Regression test output log screenshot
-│   ├── code_coverage_result.png       # QuestaSim 100% coverage GUI screenshot
+│   ├── Timer_Design_Spec.pdf          # IP design specification
+│   ├── VPLAN_TIMER_IP.xlsx            # Verification plan
+│   ├── block_diagram.png              # IP architecture block diagram
+│   ├── apb_waveform.png               # APB transfer waveform
+│   ├── regression_result.png          # Regression result screenshot
+│   ├── code_coverage_result.png       # Coverage report screenshot
 │   └── waveform_regression_test.png   # Simulation waveform screenshot
 ├── rtl/
-│   ├── apb_slave.v                    # APB protocol decoder & wait state logic
-│   ├── register.v                     # Address decoder & register array
-│   ├── counter_control.v              # Prescaler generator & debug halt logic
+│   ├── apb_slave.v                    # APB slave FSM and wait-state logic
+│   ├── register.v                     # Address decoder, registers, interrupt logic
+│   ├── counter_control.v              # Prescaler and debug halt logic
 │   ├── counter.v                      # 64-bit counter
-│   └── apb_timer_ip.v                 # Top-level IP wrapper
+│   └── apb_timer_ip.v                 # Top-level wrapper
 ├── sim/
-│   ├── compile.f                      # Simulation compile file list
-│   ├── exclude.do                     # Coverage exclusion rules
-│   ├── Makefile                       # Build automation script
-│   ├── pat.list                       # Pattern list for regression
-│   ├── report.csh                     # Automated regression reporter script
+│   ├── compile.f                      # Compile options
+│   ├── exclude.do                     # Coverage exclusions
+│   ├── Makefile                       # Build / run / coverage targets
+│   ├── pat.list                       # Testcase list for regression
+│   ├── report.csh                     # Regression summary script
 │   ├── rtl.f                          # RTL file list
-│   ├── run.csh                        # Test execution script
+│   ├── run.csh                        # Regression run script
 │   └── tb.f                           # Testbench file list
 ├── tb/
-│   └── test_bench.v                   # SystemVerilog top-level testbench
-├── testcases/                         # 14 modular testcase files
+│   └── test_bench.v                   # Verilog testbench (APB tasks, golden counter)
+├── testcases/                         # 15 testcase files
 │   ├── apb_multiple_access.v
 │   ├── apb_protocol_chk.v
 │   ├── apb_pslverr_chk.v
 │   ├── apb_rw_chk.v
 │   ├── apb_unaligned_chk.v
+│   ├── cnt_behavior_chk.v
 │   ├── cnt_counting_chk.v
 │   ├── cnt_ctrl_chk.v
 │   ├── cnt_halt_chk.v
@@ -163,21 +162,20 @@ apb_timer_ip/
 │   ├── reg_init_chk.v
 │   ├── reg_reserved_chk.v
 │   └── reg_rw_chk.v
-├── .gitignore                         # Simulation temporary files exclusion rules
-└── README.md                          # Project overview and documentation
+├── .gitignore                         # Simulation output exclusion rules
+└── README.md
 ```
+
 ## 10. Key Learning Outcomes
 
-Through this project, I demonstrated and refined essential skills in industry-standard RTL design and verification methodologies:
-
-- **AMBA APB Protocol Integration:** Designed a compliant APB slave interface supporting 32-bit transfers, 4-bit byte strobes (`tim_pstrb`), 1-cycle wait-state insertion (`tim_pready`), and error signaling (`tim_pslverr`) for illegal accesses.
-- **Microarchitecture & RTL Implementation:** Developed a 64-bit multi-mode counter with flexible prescaling (up to divide-by-256), hardware auto-clear on enable fall, and debug halt mode handshaking (`halt_req`/`halt_ack`).
-- **Hardware Interrupt Management:** Built a maskable level-interrupt generation block triggered by 64-bit compare logic (`TCMP0`/`TCMP1`) featuring Write-1-to-Clear (`RW1C`) status handling.
-- **Verification Planning & Testbench Development:** Created a comprehensive Verification Plan (VPlan in Excel), mapping spec requirements to test cases, and constructed a task-driven self-checking testbench with golden reference model comparison.
-- **Code Coverage & Exclusion Analysis:** Conducted full code coverage analysis (Statement, Branch, Condition, Toggle) using QuestaSim, writing custom exclusion scripts (`exclude.do`) to eliminate unreachable logic and achieve **100% DUT Code Coverage**.
-- **Regression & EDA Automation:** Implemented C-Shell automation scripts (`run.csh`, `report.csh`) and Makefiles to automate simulation execution, log parsing, and regression summary reporting.
+- **AMBA APB:** Implemented an APB slave with 32-bit transfers, byte strobes, one wait state per transfer and error signaling, and debugged a wait-state bug found through waveform analysis.
+- **RTL Design:** Built a 64-bit counter with prescaling (up to divide-by-256), hardware auto-clear, and debug halt handshaking.
+- **Interrupt Logic:** Built a maskable level interrupt from a 64-bit compare with RW1C status handling.
+- **Verification Planning & Testbench:** Wrote a verification plan (Excel) mapped to testcases, and a task-driven self-checking testbench with a golden counter model.
+- **Coverage Closure:** Analyzed statement, branch, FSM, toggle and expression coverage in QuestaSim, and justified each exclusion in `exclude.do`.
+- **Regression Flow:** Used Makefile and C-shell scripts to run the testcase list and summarize results.
 
 ## 11. Documentation & References
 
-- [Timer IP Design Specification (PDF)](docs/Timer_Design_Spec.pdf) — Comprehensive architectural spec, register map, and timing diagrams.
-- [Timer IP Verification Plan (Excel)](docs/VPLAN_TIMER_IP.xlsx) — Verification scope, test scenario matrix, and feature coverage mapping.
+- [Timer IP Design Specification (PDF)](docs/Timer_Design_Spec.pdf) - architecture, register map and timing diagrams.
+- [Timer IP Verification Plan (Excel)](docs/VPLAN_TIMER_IP.xlsx) - verification scope and test scenario matrix.

@@ -55,8 +55,8 @@ Its main responsibilities include:
 
 - Updating the reference model according to accepted write (`wr_en = 1`, `full = 0`) and read (`rd_en = 1`, `empty = 0`) operations.
 - Checking the `full` and `empty` flags against the reference queue state (`ref_q.size()`).
-- Comparing actual output data with the expected data from the reference model.
-- Reporting mismatches to help identify functional bugs.
+- Comparing actual output data (`data_out`) with the expected data from the reference model on every accepted read. Each match increments a counter that is reported at the end of the run, together with the number of mismatches.
+- Reporting mismatches with `uvm_error` to help identify functional bugs.
 
 The reference model is maintained independently of the DUT's internal storage implementation.
 
@@ -71,7 +71,7 @@ The functional coverage model (`fifo_coverage.sv`) tracks the following behavior
 - **Underflow Attempt Coverage:** Covers read requests while the FIFO is empty (`cross_read_empty`).
 - **Concurrent Read/Write Coverage:** Tracks combinations of write enable, read enable, and FIFO status (`cross_wr_rd`), including simultaneous read and write requests while the FIFO is neither full nor empty.
 
-The current regression achieved **95.83% total functional coverage**. The `cross_wr_rd` coverage reached **62.50%**, indicating that additional concurrent read/write combinations remain to be exercised.
+The current regression achieved **95.83% total functional coverage**, reported as the average of the covergroup items (the individual items are listed in Section 7). The `cross_wr_rd` coverage reached **62.50%**, indicating that additional concurrent read/write combinations remain to be exercised.
 
 Coverage results are based on the configured coverage model. Coverage percentages measure the coverage bins hit during simulation and do not, by themselves, prove exhaustive verification of all possible FIFO behaviors.
 
@@ -82,8 +82,8 @@ The regression was executed using **Cadence Xcelium v25.03** with UVM 1.2.
 | Metric | Result |
 | :--- | :--- |
 | **Regression Status** | Completed with no reported UVM errors |
-| **Transactions Checked** | 214 successful |
-| **Failed Transactions** | 0 |
+| **Data Comparisons (`data_out` vs. reference queue)** | 214 matched |
+| **Data Mismatches** | 0 |
 | **Total Functional Coverage** | 95.83% |
 | **Full Transition Coverage** | 100.00% |
 | **Empty Transition Coverage** | 100.00% |
@@ -162,7 +162,7 @@ Through this project, I practiced:
 - Using a reference queue for self-checking verification.
 - Implementing scoreboard checks for data integrity and FIFO status flags.
 - Developing functional coverage for state transitions and read/write cross scenarios.
-- Integrating SystemVerilog Assertions (SVA) into the verification environment.
+- Integrating six SystemVerilog Assertions (SVA) into the interface: reset behavior, `full`/`empty` exclusivity, no X/Z on flags, hold-when-full, hold-when-empty and valid `data_out`.
 - Running regression tests and analyzing simulation logs, coverage reports, and waveforms.
 
 ## 11. Future Improvements
