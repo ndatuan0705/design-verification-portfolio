@@ -5,6 +5,7 @@ reg_reserved_chk
 reg_1hot_chk
 cnt_counting_chk
 cnt_ctrl_chk
+cnt_behavior_chk
 cnt_halt_chk
 apb_protocol_chk
 apb_rw_chk
