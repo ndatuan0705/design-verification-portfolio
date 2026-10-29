@@ -28,10 +28,8 @@ task run_test();
         test_bench.tim_penable = 1'b1;
         wait (test_bench.tim_pready == 1'b1);
         //Return SETUP
-        #1;
-        test_bench.tim_penable = 1'b0;
         @(posedge test_bench.clk) #1;
-
+        test_bench.tim_penable = 1'b0;
         test_bench.tim_paddr  = 12'h08;
         test_bench.tim_pwdata = 32'hCCCC_DDDD;
 
@@ -59,8 +57,7 @@ task run_test();
         wait (test_bench.tim_pready == 1'b1) #1;
         rdata0 = test_bench.tim_prdata;
 
-        //@(posedge test_bench.clk)
-        #1;
+        @(posedge test_bench.clk) #1;
         //SETUP - READ TDR1
         test_bench.tim_penable = 1'b0;
         test_bench.tim_paddr   = 12'h08;
