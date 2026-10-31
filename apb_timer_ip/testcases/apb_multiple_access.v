@@ -137,6 +137,7 @@ task run_test();
         wait (test_bench.tim_pready == 1'b1) #1;
         rdata1 = test_bench.tim_prdata;
         //IDLE
+        @(posedge test_bench.clk) #1;
         test_bench.tim_psel = 1'b0;
         test_bench.tim_penable = 1'b0;
 

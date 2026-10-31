@@ -38,7 +38,10 @@ module apb_slave (
                 if (tim_psel && tim_penable) next_state = ACCESS;
                 else if (!tim_psel) next_state = IDLE;
             end
-            ACCESS:  next_state = IDLE;
+            ACCESS: begin
+                if (!tim_psel) next_state = IDLE;
+                else if (!tim_psel) next_state = SETUP;
+            end
             default: next_state = IDLE;
         endcase
     end
