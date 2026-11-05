@@ -35,21 +35,20 @@ module apb_slave (
                 if (tim_psel && !tim_penable) next_state = SETUP;
             end
             SETUP: begin
-                if (tim_psel && tim_penable) next_state = ACCESS;
-                else if (!tim_psel) next_state = IDLE;
+                next_state = ACCESS;
             end
             ACCESS: begin
                 if (!tim_psel) next_state = IDLE;
-                else if (!tim_psel) next_state = SETUP;
+                else if (!tim_penable) next_state = SETUP;
             end
             default: next_state = IDLE;
         endcase
     end
 
     assign tim_pready  = (current_state == ACCESS) & tim_psel & tim_penable;
-    assign wr_en       = (current_state == ACCESS) & tim_pwrite & tim_psel & tim_penable;
-    assign rd_en       = (current_state == ACCESS) & !tim_pwrite & tim_psel & tim_penable;
-    assign tim_pslverr = (current_state == ACCESS) ? reg_err : 1'b0;
+    assign wr_en       = tim_pwrite & tim_pready;
+    assign rd_en       = !tim_pwrite & tim_pready;
+    assign tim_pslverr = tim_pready & reg_err;
 
     assign wstrb       = tim_pstrb;
     assign addr        = tim_paddr;
